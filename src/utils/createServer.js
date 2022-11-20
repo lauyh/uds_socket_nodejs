@@ -3,7 +3,7 @@ const { parseJSON } = require("./parseJSON");
 let connections = {};
 let SHUTDOWN = false;
 
-const wait = (ms) => new Promise((res) => setTimeout(res, ms));
+// const wait = (ms) => new Promise((res) => setTimeout(res, ms));
 
 const createUDSServer = async (socket) => {
   console.log("-> creating unix domain server");
@@ -28,28 +28,30 @@ const createUDSServer = async (socket) => {
               result: data.params,
             });
             console.log("[DEBUG]::response:", response);
-            stream.write(response.toString("ascii"));
+
+            stream.write(response, "ascii", () => {
+              console.log("response was written into bytes");
+            });
+
             stream.pipe(stream);
             console.log("[DEBUG]::data sent");
-            await wait(500);
-            stream.unpipe(stream);
           }
-        } else {
-          console.log("invalid message");
         }
       });
 
       stream.on("error", (error) => {
         console.error("[ERROR]::", JSON.stringify(error));
+        delete connections[self];
       });
 
       stream.on("end", () => {
         console.log("<- client disconnected");
-        delete connections[self];
+        // stream.unpipe(stream);
       });
+      // stream.pipe(stream);
     })
     .listen(socket)
-    .on("connect", () => {
+    .on("connection", () => {
       console.log("<- connected");
     });
   return server;
